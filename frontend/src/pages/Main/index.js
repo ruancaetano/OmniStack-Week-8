@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
+import io from "socket.io-client";
 
 import {
   Avatar,
@@ -11,15 +12,22 @@ import {
   Empty,
   List,
   ListItem,
-  ListItemFooter
+  ListItemFooter,
+  MatchAvatar,
+  MatchBio,
+  MatchButton,
+  MatchContainer,
+  MatchName
 } from "./styles";
 import api from "../../services/api";
 import logo from "../../assets/logo.svg";
 import like from "../../assets/like.svg";
 import dislike from "../../assets/dislike.svg";
+import itsamatch from "../../assets/itsamatch.png";
 
 export default function Main({ match }) {
   const [users, setUsers] = useState([]);
+  const [matchDev, setMachDev] = useState(null);
   useEffect(() => {
     async function loadUsers() {
       const { id } = match.params;
@@ -32,7 +40,19 @@ export default function Main({ match }) {
     }
 
     loadUsers();
-  }, [match.params, match.params.id]);
+  }, [match.params.id]);
+
+  useEffect(() => {
+    const socket = io("http://localhost:3333", {
+      query: {
+        user: match.params.id
+      }
+    });
+
+    socket.on("match", dev => {
+      setMachDev(dev);
+    });
+  }, [match.params.id]);
 
   async function handleLike(targetUserId) {
     const { id: loggedUserId } = match.params;
@@ -56,6 +76,9 @@ export default function Main({ match }) {
     setUsers(users.filter(user => user._id !== targetUserId));
   }
 
+  function handleMatchClose() {
+    setMachDev(null);
+  }
   return (
     <Container>
       <Link to="/">
@@ -84,6 +107,18 @@ export default function Main({ match }) {
         </List>
       ) : (
         <Empty>Acabou :(</Empty>
+      )}
+
+      {matchDev && (
+        <MatchContainer>
+          <img src={itsamatch} alt="It's a match" />
+          <MatchAvatar className="avatar" src={matchDev.avatar} alt="" />
+          <MatchName>{matchDev.name}</MatchName>
+          <MatchBio>{matchDev.bio}</MatchBio>
+          <MatchButton type="button" onClick={handleMatchClose}>
+            FECHAR
+          </MatchButton>
+        </MatchContainer>
       )}
     </Container>
   );

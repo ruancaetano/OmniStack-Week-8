@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from "react";
-import { Image } from "react-native";
+import { Image, TouchableOpacity } from "react-native";
 import AsyncStorage from "@react-native-community/async-storage";
+import io from "socket.io-client";
 
 import {
   Avatar,
@@ -12,6 +13,12 @@ import {
   Empty,
   Footer,
   Logo,
+  MatchAvatar,
+  MatchBio,
+  MatchButton,
+  MatchContainer,
+  MatchName,
+  MatchButtonText,
   UserName,
   UserBio
 } from "./styles";
@@ -19,12 +26,14 @@ import {
 import logo from "../../assets/logo.png";
 import like from "../../assets/like.png";
 import dislike from "../../assets/dislike.png";
+import itsamatch from "../../assets/itsamatch.png";
 import api from "../../services/api";
-import { TouchableOpacity } from "react-native-gesture-handler";
 
 export default function Main({ navigation }) {
   const id = navigation.getParam("id");
   const [users, setUsers] = useState([]);
+  const [matchDev, setMachDev] = useState(null);
+
   useEffect(() => {
     async function loadUsers() {
       const response = await api.get(`/devs`, {
@@ -36,6 +45,18 @@ export default function Main({ navigation }) {
     }
 
     loadUsers();
+  }, [id]);
+
+  useEffect(() => {
+    const socket = io("http://192.168.15.4:3333", {
+      query: {
+        user: id
+      }
+    });
+
+    socket.on("match", dev => {
+      setMachDev(dev);
+    });
   }, [id]);
 
   async function handleLike() {
@@ -65,6 +86,10 @@ export default function Main({ navigation }) {
   async function handleLogout() {
     await AsyncStorage.clear();
     navigation.navigate("Login");
+  }
+
+  function handleMatchClose() {
+    setMachDev(null);
   }
 
   return (
@@ -101,6 +126,18 @@ export default function Main({ navigation }) {
             <Image source={like} />
           </Button>
         </Buttons>
+      )}
+
+      {matchDev && (
+        <MatchContainer>
+          <Image souce={itsamatch} alt="It's a match" resizeMode="contain" />
+          <MatchAvatar source={{ uri: matchDev.avatar }} alt="" />
+          <MatchName>{matchDev.name}</MatchName>
+          <MatchBio>{matchDev.bio}</MatchBio>
+          <MatchButton onPress={handleMatchClose}>
+            <MatchButtonText>FECHAR</MatchButtonText>
+          </MatchButton>
+        </MatchContainer>
       )}
     </Container>
   );
